@@ -6,22 +6,13 @@
 	coreelec-dt-id = "sm1_s905x3_bananapi_m5";
 
 	/delete-node/ memory@00000000;
-	/delete-node/ gpioleds;
 	/delete-node/ bt-dev;
 	/delete-node/ wifi;
 	/delete-node/ wifi_pwm_conf;
-	/delete-node/ adc_keypad;
 	/delete-node/ unifykey;
-
-	/delete-node/ t9015;
 
 	auge_sound {
 		/delete-property/ avout_mute-gpios;
-		aml-audio-card,dai-link@1 {
-			codec {
-				sound-dai = <&dummy_codec>;
-			};
-		};
 	};
 
 	cpu_opp_table0: cpu_opp_table0 {
@@ -43,11 +34,20 @@
 		};
 	};
 
-	leds {
-		compatible = "gpio-leds";
-		blueled {
-			label = "blue:heartbeat";
-			gpios = <&gpio_ao GPIOAO_11 GPIO_ACTIVE_HIGH>;
+	gpioleds {
+		status = "okay";
+		/delete-node/ sys_led;
+		green_led {
+			label = "green";
+			gpios = <&gpio_ao GPIOAO_2 GPIO_ACTIVE_LOW>;
+			default-state = "off";
+			linux,default-trigger = "none";
+		};
+
+		blue_led {
+			label = "blue";
+			gpios = <&gpio_ao GPIOAO_11 GPIO_ACTIVE_LOW>;
+			default-state = "off";
 			linux,default-trigger = "heartbeat";
 		};
 	};
@@ -60,6 +60,67 @@
 			duration-ms = <100>;
 		};
 	};
+
+	adc_keypad {
+		compatible = "amlogic, adc_keypad";
+		status = "okay";
+		key_name = "power";
+		key_num = <1>;
+		io-channels = <&saradc SARADC_CH2>;
+		io-channel-names = "key-chan-2";
+		key_chan = <SARADC_CH2>;
+		key_code = <116>;
+		key_val = <0>; //val=voltage/1800mV*1023
+		key_tolerance = <40>;
+	};
+
+	meson-remote {
+		map = <&custom_maps>;
+	};
+
+	custom_maps:custom_maps {
+		mapnum = <2>;
+		map0 = <&map_0>;
+		map1 = <&map_1>;
+		map_0: map_0{
+			mapname = "amlogic-remote-1";
+			customcode = <0xfe01>;
+			release_delay = <80>;
+			size  = <13>;   /*keymap size*/
+			keymap = <REMOTE_KEY(0x00, KEY_POWER)
+				REMOTE_KEY(0x01, KEY_MENU)
+				REMOTE_KEY(0x09, KEY_HOME)
+				REMOTE_KEY(0x02, KEY_LEFT)
+				REMOTE_KEY(0x0a, KEY_RIGHT)
+				REMOTE_KEY(0x05, KEY_UP)
+				REMOTE_KEY(0x04, KEY_DOWN)
+				REMOTE_KEY(0x06, KEY_ENTER)
+				REMOTE_KEY(0x03, KEY_VOLUMEDOWN)
+				REMOTE_KEY(0x0b, KEY_VOLUMEUP)
+				REMOTE_KEY(0x40, KEY_BACK)
+				REMOTE_KEY(0x48, KEY_PLAYPAUSE)
+				REMOTE_KEY(0x44, KEY_MUTE)>;
+		};
+		map_1: map_1{
+			mapname = "amlogic-remote-2";
+			customcode = <0xaf40>;
+			release_delay = <80>;
+			size  = <13>;
+			keymap = <REMOTE_KEY(0x0e, KEY_POWER)
+				REMOTE_KEY(0x07, KEY_MENU)
+				REMOTE_KEY(0x02, KEY_HOME)
+				REMOTE_KEY(0x01, KEY_LEFT)
+				REMOTE_KEY(0x03, KEY_RIGHT)
+				REMOTE_KEY(0x19, KEY_UP)
+				REMOTE_KEY(0x05, KEY_DOWN)
+				REMOTE_KEY(0x06, KEY_ENTER)
+				REMOTE_KEY(0x12, KEY_VOLUMEDOWN)
+				REMOTE_KEY(0x04, KEY_VOLUMEUP)
+				REMOTE_KEY(0x0f, KEY_BACK)
+				REMOTE_KEY(0x0d, KEY_PLAYPAUSE)
+				REMOTE_KEY(0x11, KEY_MUTE)>;
+		};
+};
 
 	efuse: efuse {
 		compatible = "amlogic, efuse";
@@ -108,11 +169,6 @@
 };
 
 &audiobus {
-	aml_spdif: spdif {
-		pinctrl-names = "spdif_pins";
-		pinctrl-0 = <&spdifout>;
-	};
-
 	tdmb: tdm@1 {
 		pinctrl-0 = <&tdmb_mclk_ao &tdmout_b_ao>;
 	};
@@ -178,8 +234,6 @@
 
 &usb3_phy_v2 {
 	otg = <1>;
-	gpio-vbus-power = "GPIOAO_2";
-	gpios = <&gpio_ao GPIOAO_2 GPIO_ACTIVE_HIGH>;
 };
 
 &uart_A {
@@ -198,4 +252,8 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&i2c3_master_pins2>;
 	clock-frequency = <100000>;
+};
+
+&saradc {
+	status = "okay";
 };
